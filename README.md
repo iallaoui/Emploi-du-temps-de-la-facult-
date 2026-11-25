@@ -126,6 +126,17 @@ Ces dépendances ne sont pas encore installées.
 4. Ajouter les maquettes et captures dans `docs/` et `assets/images/`.
 5. Écrire les tests puis générer l’APK final.
 
+## État du backend Firebase
+
+La phase 1 du backend définit maintenant le schéma Firestore, les règles de
+sécurité, les index et les contrats du domaine. Les étudiants ont un accès en
+lecture aux données publiées. Les enseignants authentifiés peuvent gérer
+uniquement leurs propres séances et les groupes/modules qui leur sont
+attribués.
+
+Voir [`docs/backend_architecture.md`](docs/backend_architecture.md) pour le
+schéma complet et les phases d'intégration restantes.
+
 ## Dates du sujet
 
 | Jalon | Date | Attendu |

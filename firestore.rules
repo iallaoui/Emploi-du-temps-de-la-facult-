@@ -1,0 +1,274 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function estConnecte() {
+      return request.auth != null;
+    }
+
+    function cheminEnseignant() {
+      return /databases/$(database)/documents/enseignants/$(request.auth.uid);
+    }
+
+    function estEnseignantActif() {
+      return estConnecte()
+        && exists(cheminEnseignant())
+        && get(cheminEnseignant()).data.actif == true;
+    }
+
+    function enseignantAutorisePourGroupe(groupeId) {
+      return estEnseignantActif()
+        && get(cheminEnseignant()).data.groupesAutorises is list
+        && get(cheminEnseignant()).data.groupesAutorises.hasAny([groupeId]);
+    }
+
+    function enseignantAutorisePourModule(moduleId) {
+      return estEnseignantActif()
+        && get(cheminEnseignant()).data.modulesAutorises is list
+        && get(cheminEnseignant()).data.modulesAutorises.hasAny([moduleId]);
+    }
+
+    function possedeSeance(seanceId) {
+      let seance = get(/databases/$(database)/documents/seances/$(seanceId));
+      return seance.data.enseignantUid == request.auth.uid;
+    }
+
+    function referencesPedagogiquesValides(data) {
+      let groupe = get(
+        /databases/$(database)/documents/groupes/$(data.groupeId)
+      );
+      let module = get(
+        /databases/$(database)/documents/modules/$(data.moduleId)
+      );
+      return groupe.data.actif == true
+        && module.data.actif == true
+        && groupe.data.filiereId == data.filiereId
+        && groupe.data.semestreId == data.semestreId
+        && module.data.filiereId == data.filiereId
+        && module.data.semestreId == data.semestreId;
+    }
+
+    function modificationCorrespondASeance(data) {
+      let seance = get(
+        /databases/$(database)/documents/seances/$(data.seanceId)
+      );
+      return seance.data.enseignantUid == data.enseignantUid
+        && seance.data.filiereId == data.filiereId
+        && seance.data.semestreId == data.semestreId
+        && seance.data.groupeId == data.groupeId;
+    }
+
+    function seanceValide(data) {
+      return data.keys().hasOnly([
+          'filiereId', 'semestreId', 'groupeId', 'moduleId', 'nomModule',
+          'enseignantUid', 'nomEnseignant', 'salle', 'typeSeance',
+          'jourSemaine', 'minuteDebut', 'minuteFin', 'dateDebutValidite',
+          'dateFinValidite', 'estPublie', 'creeLe', 'modifieLe'
+        ])
+        && data.keys().hasAll([
+          'filiereId', 'semestreId', 'groupeId', 'moduleId', 'nomModule',
+          'enseignantUid', 'nomEnseignant', 'salle', 'typeSeance',
+          'jourSemaine', 'minuteDebut', 'minuteFin', 'dateDebutValidite',
+          'dateFinValidite', 'estPublie', 'creeLe', 'modifieLe'
+        ])
+        && data.filiereId is string
+        && data.semestreId is string
+        && data.groupeId is string
+        && data.moduleId is string
+        && data.nomModule is string
+        && data.enseignantUid is string
+        && data.nomEnseignant is string
+        && data.salle is string
+        && data.typeSeance in ['COURS', 'TD', 'TP', 'EXAMEN']
+        && data.jourSemaine is int
+        && data.jourSemaine >= 1
+        && data.jourSemaine <= 7
+        && data.minuteDebut is int
+        && data.minuteDebut >= 0
+        && data.minuteDebut < 1440
+        && data.minuteFin is int
+        && data.minuteFin > data.minuteDebut
+        && data.minuteFin <= 1440
+        && data.dateDebutValidite is timestamp
+        && data.dateFinValidite is timestamp
+        && data.dateFinValidite >= data.dateDebutValidite
+        && data.estPublie is bool
+        && data.creeLe is timestamp
+        && data.modifieLe is timestamp;
+    }
+
+    function modificationValide(data) {
+      return data.keys().hasOnly([
+          'seanceId', 'enseignantUid', 'filiereId', 'semestreId',
+          'groupeId', 'dateConcernee', 'typeModification', 'nouvelleSalle',
+          'nouvelleMinuteDebut', 'nouvelleMinuteFin', 'motif', 'estPublie',
+          'creeLe', 'modifieLe'
+        ])
+        && data.keys().hasAll([
+          'seanceId', 'enseignantUid', 'filiereId', 'semestreId',
+          'groupeId', 'dateConcernee', 'typeModification', 'nouvelleSalle',
+          'nouvelleMinuteDebut', 'nouvelleMinuteFin', 'motif', 'estPublie',
+          'creeLe', 'modifieLe'
+        ])
+        && data.seanceId is string
+        && data.enseignantUid is string
+        && data.filiereId is string
+        && data.semestreId is string
+        && data.groupeId is string
+        && data.dateConcernee is timestamp
+        && data.typeModification in [
+          'SALLE_MODIFIEE', 'ANNULEE', 'REPORTEE', 'SEANCE_SUPPLEMENTAIRE'
+        ]
+        && data.nouvelleSalle is string
+        && data.nouvelleMinuteDebut is int
+        && data.nouvelleMinuteDebut >= -1
+        && data.nouvelleMinuteDebut < 1440
+        && data.nouvelleMinuteFin is int
+        && data.nouvelleMinuteFin >= -1
+        && data.nouvelleMinuteFin <= 1440
+        && ((data.nouvelleMinuteDebut == -1
+          && data.nouvelleMinuteFin == -1)
+          || (data.nouvelleMinuteDebut >= 0
+            && data.nouvelleMinuteFin > data.nouvelleMinuteDebut))
+        && data.motif is string
+        && data.estPublie is bool
+        && data.creeLe is timestamp
+        && data.modifieLe is timestamp;
+    }
+
+    function annonceValide(data) {
+      return data.keys().hasOnly([
+          'enseignantUid', 'titre', 'message', 'filiereId', 'semestreId',
+          'groupesCibles', 'estPublie', 'publieLe', 'expireLe', 'creeLe',
+          'modifieLe'
+        ])
+        && data.keys().hasAll([
+          'enseignantUid', 'titre', 'message', 'filiereId', 'semestreId',
+          'groupesCibles', 'estPublie', 'publieLe', 'expireLe', 'creeLe',
+          'modifieLe'
+        ])
+        && data.enseignantUid is string
+        && data.titre is string
+        && data.titre.size() > 0
+        && data.titre.size() <= 140
+        && data.message is string
+        && data.message.size() > 0
+        && data.message.size() <= 2000
+        && data.filiereId is string
+        && data.semestreId is string
+        && data.groupesCibles is list
+        && data.groupesCibles.size() > 0
+        && data.groupesCibles.size() <= 20
+        && data.groupesCibles.toSet().difference(
+          get(cheminEnseignant()).data.groupesAutorises.toSet()
+        ).size() == 0
+        && data.estPublie is bool
+        && data.publieLe is timestamp
+        && data.expireLe is timestamp
+        && data.expireLe > data.publieLe
+        && data.creeLe is timestamp
+        && data.modifieLe is timestamp;
+    }
+
+    match /filieres/{filiereId} {
+      allow read: if resource.data.actif == true || estEnseignantActif();
+      allow write: if false;
+    }
+
+    match /semestres/{semestreId} {
+      allow read: if resource.data.actif == true || estEnseignantActif();
+      allow write: if false;
+    }
+
+    match /groupes/{groupeId} {
+      allow read: if resource.data.actif == true || estEnseignantActif();
+      allow write: if false;
+    }
+
+    match /modules/{moduleId} {
+      allow read: if resource.data.actif == true || estEnseignantActif();
+      allow write: if false;
+    }
+
+    match /enseignants/{enseignantUid} {
+      allow read: if estConnecte() && request.auth.uid == enseignantUid;
+      allow write: if false;
+    }
+
+    match /seances/{seanceId} {
+      allow read: if resource.data.estPublie == true || estEnseignantActif();
+
+      allow create: if estEnseignantActif()
+        && seanceValide(request.resource.data)
+        && request.resource.data.enseignantUid == request.auth.uid
+        && enseignantAutorisePourGroupe(request.resource.data.groupeId)
+        && enseignantAutorisePourModule(request.resource.data.moduleId)
+        && referencesPedagogiquesValides(request.resource.data)
+        && request.resource.data.creeLe == request.time
+        && request.resource.data.modifieLe == request.time;
+
+      allow update: if estEnseignantActif()
+        && resource.data.enseignantUid == request.auth.uid
+        && seanceValide(request.resource.data)
+        && request.resource.data.enseignantUid == request.auth.uid
+        && request.resource.data.creeLe == resource.data.creeLe
+        && enseignantAutorisePourGroupe(request.resource.data.groupeId)
+        && enseignantAutorisePourModule(request.resource.data.moduleId)
+        && referencesPedagogiquesValides(request.resource.data)
+        && request.resource.data.modifieLe == request.time;
+
+      allow delete: if estEnseignantActif()
+        && resource.data.enseignantUid == request.auth.uid;
+    }
+
+    match /modificationsSeances/{modificationId} {
+      allow read: if resource.data.estPublie == true || estEnseignantActif();
+
+      allow create: if estEnseignantActif()
+        && modificationValide(request.resource.data)
+        && request.resource.data.enseignantUid == request.auth.uid
+        && possedeSeance(request.resource.data.seanceId)
+        && modificationCorrespondASeance(request.resource.data)
+        && enseignantAutorisePourGroupe(request.resource.data.groupeId)
+        && request.resource.data.creeLe == request.time
+        && request.resource.data.modifieLe == request.time;
+
+      allow update: if estEnseignantActif()
+        && resource.data.enseignantUid == request.auth.uid
+        && modificationValide(request.resource.data)
+        && request.resource.data.enseignantUid == request.auth.uid
+        && possedeSeance(request.resource.data.seanceId)
+        && modificationCorrespondASeance(request.resource.data)
+        && request.resource.data.creeLe == resource.data.creeLe
+        && enseignantAutorisePourGroupe(request.resource.data.groupeId)
+        && request.resource.data.modifieLe == request.time;
+
+      allow delete: if estEnseignantActif()
+        && resource.data.enseignantUid == request.auth.uid;
+    }
+
+    match /annonces/{annonceId} {
+      allow read: if resource.data.estPublie == true || estEnseignantActif();
+
+      allow create: if estEnseignantActif()
+        && annonceValide(request.resource.data)
+        && request.resource.data.enseignantUid == request.auth.uid
+        && request.resource.data.creeLe == request.time
+        && request.resource.data.modifieLe == request.time;
+
+      allow update: if estEnseignantActif()
+        && resource.data.enseignantUid == request.auth.uid
+        && annonceValide(request.resource.data)
+        && request.resource.data.enseignantUid == request.auth.uid
+        && request.resource.data.creeLe == resource.data.creeLe
+        && request.resource.data.modifieLe == request.time;
+
+      allow delete: if estEnseignantActif()
+        && resource.data.enseignantUid == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

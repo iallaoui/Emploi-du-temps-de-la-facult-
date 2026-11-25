@@ -1,0 +1,60 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "seances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "filiereId", "order": "ASCENDING" },
+        { "fieldPath": "semestreId", "order": "ASCENDING" },
+        { "fieldPath": "groupeId", "order": "ASCENDING" },
+        { "fieldPath": "estPublie", "order": "ASCENDING" },
+        { "fieldPath": "jourSemaine", "order": "ASCENDING" },
+        { "fieldPath": "minuteDebut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "seances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "enseignantUid", "order": "ASCENDING" },
+        { "fieldPath": "jourSemaine", "order": "ASCENDING" },
+        { "fieldPath": "minuteDebut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "modificationsSeances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupeId", "order": "ASCENDING" },
+        { "fieldPath": "estPublie", "order": "ASCENDING" },
+        { "fieldPath": "dateConcernee", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "modificationsSeances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "enseignantUid", "order": "ASCENDING" },
+        { "fieldPath": "dateConcernee", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupesCibles", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "estPublie", "order": "ASCENDING" },
+        { "fieldPath": "publieLe", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "enseignantUid", "order": "ASCENDING" },
+        { "fieldPath": "creeLe", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
